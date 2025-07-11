@@ -1,0 +1,6 @@
+{
+  "name": "Tally Counter",
+  "description": "A simple, installable tally counter application that allows users to increment, decrement, and reset a count. It works offline!",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
