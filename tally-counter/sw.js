@@ -1,18 +1,11 @@
-const CACHE_NAME = 'tally-counter-cache-v1';
+const CACHE_NAME = 'tally-counter-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/index.tsx',
-  '/metadata.json',
-  '/App.tsx',
-  '/components/Button.tsx',
-  '/components/CounterDisplay.tsx',
-  '/components/icons/MinusIcon.tsx',
-  '/components/icons/PlusIcon.tsx',
-  '/components/icons/RefreshIcon.tsx',
+  '/script.js',
   '/manifest.json',
-  '/icons/icon-192.svg',
-  '/icons/icon-512.svg'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -28,15 +21,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
-        // If the request is in the cache, return the cached response
-        if (response) {
-          return response;
-        }
-        // If the request is not in the cache, fetch it from the network.
-        // The app shell will work offline, external resources (CDNs) will require a connection.
-        return fetch(event.request);
-      })
+      .then((response) => response || fetch(event.request))
   );
 });
 
