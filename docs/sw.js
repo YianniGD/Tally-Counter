@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tally-counter-cache-v3';
+const CACHE_NAME = 'tally-counter-cache-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,8 +9,7 @@ const urlsToCache = [
   '/icons/icon-maskable-512.png',
   '/icons/apple-touch-icon-180x180.png',
   '/icons/apple-touch-icon-167x167.png',
-  '/icons/apple-touch-icon-152x152.png',
-  '/offline.html'
+  '/icons/apple-touch-icon-152x152.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -28,9 +27,6 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request)
       .then((response) => {
         return response || fetch(event.request);
-      })
-      .catch(() => {
-        return caches.match('/offline.html');
       })
   );
 });
