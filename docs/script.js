@@ -1,104 +1,143 @@
-const CounterDisplay = ({ count }) => {
-  const display = document.createElement('div');
-  display.className = "text-7xl sm:text-8xl font-mono font-bold text-gray-800 mb-8 p-4 bg-gray-200 rounded-lg shadow-inner select-none text-center";
-  display.textContent = count;
-  return display;
-};
-
-const Button = ({ onClick, children, className = '', ariaLabel, disabled = false, textColor = 'text-white' }) => {
-  const baseClasses = `font-semibold ${textColor} rounded-lg shadow-md transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100`;
-  const interactiveClasses = "transform hover:scale-105 active:scale-95";
-  const disabledClasses = "opacity-60 cursor-not-allowed";
-
-  const button = document.createElement('button');
-  button.addEventListener('click', onClick);
-  button.className = `${baseClasses} ${disabled ? disabledClasses : interactiveClasses} ${className}`;
-  if (ariaLabel) {
-    button.setAttribute('aria-label', ariaLabel);
-  }
-  if (disabled) {
-    button.disabled = true;
-  }
-  button.innerHTML = children;
-
-  return button;
-};
-
-const PlusIcon = ({ className }) => `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6" /></svg>`;
-const MinusIcon = ({ className }) => `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" /></svg>`;
-const RefreshIcon = ({ className }) => `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256.455 8c66.269.119 126.437 26.233 170.859 68.685l35.715-35.715C478.149 25.851 504 36.559 504 57.941V192c0 13.255-10.745 24-24 24H345.941c-21.382 0-32.09-25.851-16.971-40.971l41.75-41.75c-30.864-28.899-70.801-44.907-113.23-45.273-92.398-.798-170.283 73.977-169.484 169.442C88.764 348.009 162.184 424 256 424c41.127 0 79.997-14.678 110.629-41.556 4.743-4.161 11.906-3.908 16.368.553l39.662 39.662c4.872 4.872 4.631 12.815-.482 17.433C378.202 479.813 319.926 504 256 504 119.034 504 8.001 392.967 8 256.002 7.999 119.193 119.646 7.755 256.455 8z"/></svg>`;
-
-const LOCAL_STORAGE_KEY = 'tallyCounterProCount';
+const LOCAL_STORAGE_KEY = 'tallyCounters';
+const CURRENT_COUNTER_ID_KEY = 'currentTallyCounterId';
 
 const App = () => {
-  let count = localStorage.getItem(LOCAL_STORAGE_KEY) ? parseInt(localStorage.getItem(LOCAL_STORAGE_KEY), 10) : 0;
+  let counters = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+  let currentCounterId = JSON.parse(localStorage.getItem(CURRENT_COUNTER_ID_KEY));
 
-  const appElement = document.createElement('div');
-  appElement.className = "min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 text-gray-800 selection:bg-amber-500 selection:text-white";
+  if (counters.length === 0) {
+    counters = [{ id: Date.now(), name: 'Main Counter', count: 0 }];
+    currentCounterId = counters[0].id;
+  }
 
-  const mainElement = document.createElement('main');
-  mainElement.className = "bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-sm";
+  if (!currentCounterId || !counters.find(c => c.id === currentCounterId)) {
+    currentCounterId = counters[0]?.id;
+  }
+
+  const root = document.getElementById('root');
+  root.className = "min-h-screen bg-gray-100 flex flex-col items-center p-4 text-gray-800 selection:bg-amber-500 selection:text-white";
+
+  const saveState = () => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(counters));
+    localStorage.setItem(CURRENT_COUNTER_ID_KEY, JSON.stringify(currentCounterId));
+  };
 
   const render = () => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, count.toString());
-    mainElement.innerHTML = ''; // Clear previous content
+    saveState();
+    root.innerHTML = ''; // Clear previous content
 
-    const counterDisplay = CounterDisplay({ count });
+    const mainElement = document.createElement('main');
+    mainElement.className = "w-full max-w-md";
 
-    const handleDecrement = () => {
-      count--;
+    const currentCounter = counters.find(c => c.id === currentCounterId);
+
+    // Counter selection and management
+    const selectionContainer = document.createElement('div');
+    selectionContainer.className = "bg-white p-4 rounded-xl shadow-lg mb-4";
+    const selectionFlex = document.createElement('div');
+    selectionFlex.className = "flex gap-4 items-center";
+    const select = document.createElement('select');
+    select.className = "flex-grow p-2 border rounded-lg";
+    counters.forEach(counter => {
+      const option = document.createElement('option');
+      option.value = counter.id;
+      option.textContent = counter.name;
+      if (counter.id === currentCounterId) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+    select.addEventListener('change', (e) => {
+      currentCounterId = parseInt(e.target.value);
       render();
-    };
+    });
+    const deleteButton = document.createElement('button');
+    deleteButton.className = "text-red-500 hover:text-red-700 font-bold py-2 px-2 rounded-lg";
+    deleteButton.innerHTML = '&times;';
+    deleteButton.addEventListener('click', () => {
+      if (counters.length > 1) {
+        counters = counters.filter(c => c.id !== currentCounterId);
+        currentCounterId = counters[0].id;
+        render();
+      }
+    });
+    selectionFlex.appendChild(select);
+    selectionFlex.appendChild(deleteButton);
+    selectionContainer.appendChild(selectionFlex);
 
-    const handleIncrement = () => {
-      count++;
-      render();
-    };
+    // Form for adding new counters
+    const form = document.createElement('form');
+    form.className = "bg-white p-4 rounded-xl shadow-lg mb-4";
+    form.innerHTML = `
+      <div class="flex gap-4">
+        <input type="text" id="new-counter-name" class="flex-grow p-2 border rounded-lg" placeholder="New Counter Name">
+        <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg">Add</button>
+      </div>
+    `;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('new-counter-name');
+      const name = input.value.trim();
+      if (name) {
+        const newCounter = { id: Date.now(), name, count: 0 };
+        counters.push(newCounter);
+        currentCounterId = newCounter.id;
+        input.value = '';
+        render();
+      }
+    });
 
-    const handleReset = () => {
-      count = 0;
-      render();
-    };
+    // Main counter display
+    const counterContainer = document.createElement('div');
+    counterContainer.className = "bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full";
+
+    const counterDisplay = document.createElement('div');
+    counterDisplay.className = "text-7xl sm:text-8xl font-mono font-bold text-gray-800 mb-8 p-4 bg-gray-200 rounded-lg shadow-inner select-none text-center";
+    counterDisplay.textContent = currentCounter.count;
 
     const buttonGrid = document.createElement('div');
     buttonGrid.className = "grid grid-cols-2 gap-4 mb-4";
 
-    const decrementButton = Button({
-      onClick: handleDecrement,
-      className: "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 flex items-center justify-center p-4 text-base sm:text-lg",
-      ariaLabel: "Decrement count",
-      children: MinusIcon({ className: "w-6 h-6 sm:w-7 sm:h-7" })
+    const decrementButton = document.createElement('button');
+    decrementButton.className = "bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-lg";
+    decrementButton.textContent = '-';
+    decrementButton.addEventListener('click', () => {
+      currentCounter.count--;
+      render();
     });
 
-    const incrementButton = Button({
-      onClick: handleIncrement,
-      className: "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 flex items-center justify-center p-4 text-base sm:text-lg",
-      ariaLabel: "Increment count",
-      children: PlusIcon({ className: "w-6 h-6 sm:w-7 sm:h-7" })
+    const incrementButton = document.createElement('button');
+    incrementButton.className = "bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-lg";
+    incrementButton.textContent = '+';
+    incrementButton.addEventListener('click', () => {
+      currentCounter.count++;
+      render();
     });
 
     buttonGrid.appendChild(decrementButton);
     buttonGrid.appendChild(incrementButton);
 
     const resetContainer = document.createElement('div');
-    const resetButton = Button({
-      onClick: handleReset,
-      className: "bg-gray-300 hover:bg-gray-400 focus:ring-gray-500 w-full flex items-center justify-center p-4 text-base sm:text-lg",
-      ariaLabel: "Reset count",
-      children: RefreshIcon({ className: "w-6 h-6 sm:w-7 sm:h-7" }),
-      textColor: 'text-gray-800'
+    const resetButton = document.createElement('button');
+    resetButton.className = "bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-4 px-4 rounded-lg w-full";
+    resetButton.textContent = 'Reset';
+    resetButton.addEventListener('click', () => {
+      currentCounter.count = 0;
+      render();
     });
     resetContainer.appendChild(resetButton);
 
-    mainElement.appendChild(counterDisplay);
-    mainElement.appendChild(buttonGrid);
-    mainElement.appendChild(resetContainer);
+    counterContainer.appendChild(counterDisplay);
+    counterContainer.appendChild(buttonGrid);
+    counterContainer.appendChild(resetContainer);
+
+    mainElement.appendChild(selectionContainer);
+    mainElement.appendChild(form);
+    mainElement.appendChild(counterContainer);
+    root.appendChild(mainElement);
   };
 
-  appElement.appendChild(mainElement);
   render();
-
-  return appElement;
 };
 
-document.body.appendChild(App());
+App();
